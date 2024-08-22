@@ -86,7 +86,7 @@ impl TryFrom<RespFrame> for Command {
 impl TryFrom<RespArray> for Command {
     type Error = CommandError;
     fn try_from(value: RespArray) -> Result<Self, Self::Error> {
-        match value.first() {
+        match value.as_ref().unwrap().first() {
             Some(RespFrame::BulkString(ref cmd)) => match cmd.as_ref() {
                 b"get" => Ok(Command::Get(Get::try_from(value)?)),
                 b"set" => Ok(Command::Set(Set::try_from(value)?)),
@@ -113,7 +113,7 @@ fn validate_command(
     names: &[&'static str],
     n_args: usize,
 ) -> Result<(), CommandError> {
-    if value.len() != n_args + names.len() {
+    if value.as_ref().unwrap().len() != n_args + names.len() {
         return Err(CommandError::InvalidArgument(format!(
             "{} command must have exactly {} argument",
             names.join(" "),
@@ -121,7 +121,7 @@ fn validate_command(
         )));
     }
     for (i, name) in names.iter().enumerate() {
-        match value[i] {
+        match value.as_ref().unwrap()[i] {
             RespFrame::BulkString(ref cmd) => {
                 if cmd.as_ref().to_ascii_lowercase() != name.as_bytes() {
                     return Err(CommandError::InvalidCommand(format!(
@@ -143,7 +143,7 @@ fn validate_command(
 }
 
 fn extract_args(value: RespArray, start: usize) -> Result<Vec<RespFrame>, CommandError> {
-    Ok(value.0.into_iter().skip(start).collect())
+    Ok(value.0.unwrap().into_iter().skip(start).collect())
 }
 
 #[cfg(test)]

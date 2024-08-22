@@ -9,8 +9,7 @@ use winnow::{
 };
 
 use crate::{
-    BulkString, RespArray, RespError, RespFrame, RespMap, RespNull, RespNullArray, SimpleError,
-    SimpleString,
+    BulkString, RespArray, RespError, RespFrame, RespMap, RespNull, SimpleError, SimpleString,
 };
 
 const CRLF: &[u8] = b"\r\n";
@@ -52,7 +51,7 @@ pub fn parse_frame(input: &mut &[u8]) -> PResult<RespFrame> {
         b'-' => error.map(RespFrame::Error),
         b':' => integer.map(RespFrame::Integer),
         b'$' => bulk_string.map(RespFrame::BulkString),
-        b'*' => alt((null_array.map(RespFrame::NullArray), array.map(RespFrame::Array))),
+        b'*' => array.map(RespFrame::Array),
         b'_' => null.map(RespFrame::Null),
         b'#' => boolean.map(RespFrame::Boolean),
         b',' => decimal.map(RespFrame::Double),
@@ -119,14 +118,17 @@ fn bulk_string_len(input: &mut &[u8]) -> PResult<()> {
     .parse_next(input) */
 }
 
-fn null_array(input: &mut &[u8]) -> PResult<RespNullArray> {
-    "-1\r\n".value(RespNullArray).parse_next(input)
-}
+// fn null_array(input: &mut &[u8]) -> PResult<RespNullArray> {
+//     "-1\r\n".value(RespNullArray).parse_next(input)
+// }
 
 // "*2\r\n$3\r\nget\r\n$5\r\nhello\r\n"
 #[allow(clippy::comparison_chain)]
 fn array(input: &mut &[u8]) -> PResult<RespArray> {
     let len = integer(input)?;
+    if len == -1 {
+        return Ok(RespArray::new_null());
+    }
     if len == 0 {
         return Ok(RespArray::new(vec![]));
     } else if len < 0 {

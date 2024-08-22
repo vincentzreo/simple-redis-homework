@@ -141,7 +141,7 @@ mod tests {
     fn respv2_null_array_should_work() {
         let mut buf = BytesMut::from("*-1\r\n");
         let frame = RespFrame::decode(&mut buf).unwrap();
-        assert_eq!(frame, RespFrame::NullArray(crate::RespNullArray));
+        assert_eq!(frame, RespFrame::Array(crate::RespArray::new_null()));
     }
 
     #[test]

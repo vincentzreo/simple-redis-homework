@@ -2,29 +2,31 @@ use std::ops::Deref;
 
 use bytes::{Buf, BytesMut};
 
-use crate::{
-    calc_total_length, extract_fixed_data, parse_length, RespDecode, RespEncode, RespError,
-    RespFrame,
-};
+use crate::{calc_total_length, parse_length, RespDecode, RespEncode, RespError, RespFrame};
 
 use super::{BUF_CAP, CRLF_LEN};
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct RespArray(pub(crate) Vec<RespFrame>);
+pub struct RespArray(pub(crate) Option<Vec<RespFrame>>);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RespNullArray;
+// #[derive(Debug, Clone, PartialEq, Eq)]
+// pub struct RespNullArray;
 
 // - array: "*<number-of-elements>\r\n<element-1>...<element-n>" - "*2\r\n$3\r\nget\r\n$5\r\nhello\r\n"
 
 impl RespEncode for RespArray {
     fn encode(self) -> Vec<u8> {
-        let mut buf = Vec::with_capacity(BUF_CAP);
-        buf.extend_from_slice(format!("*{}\r\n", self.len()).as_bytes());
-        for frame in self.0 {
-            buf.extend_from_slice(&frame.encode());
+        match self.0 {
+            None => b"*-1\r\n".to_vec(),
+            Some(frames) => {
+                let mut buf = Vec::with_capacity(BUF_CAP);
+                buf.extend_from_slice(format!("*{}\r\n", frames.len()).as_bytes());
+                for frame in frames {
+                    buf.extend_from_slice(&frame.encode());
+                }
+                buf
+            }
         }
-        buf
     }
 }
 
@@ -52,25 +54,25 @@ impl RespDecode for RespArray {
 }
 
 // - null array: "*-1\r\n"
-impl RespEncode for RespNullArray {
-    fn encode(self) -> Vec<u8> {
-        b"*-1\r\n".to_vec()
-    }
-}
+// impl RespEncode for RespNullArray {
+//     fn encode(self) -> Vec<u8> {
+//         b"*-1\r\n".to_vec()
+//     }
+// }
 
-impl RespDecode for RespNullArray {
-    const PREFIX: &'static str = "*";
-    fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
-        extract_fixed_data(buf, "*-1\r\n", "Null Array")?;
-        Ok(RespNullArray)
-    }
-    fn expect_length(_buf: &[u8]) -> Result<usize, RespError> {
-        Ok(5)
-    }
-}
+// impl RespDecode for RespNullArray {
+//     const PREFIX: &'static str = "*";
+//     fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
+//         extract_fixed_data(buf, "*-1\r\n", "Null Array")?;
+//         Ok(RespNullArray)
+//     }
+//     fn expect_length(_buf: &[u8]) -> Result<usize, RespError> {
+//         Ok(5)
+//     }
+// }
 
 impl Deref for RespArray {
-    type Target = Vec<RespFrame>;
+    type Target = Option<Vec<RespFrame>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -79,13 +81,16 @@ impl Deref for RespArray {
 
 impl RespArray {
     pub fn new(s: impl Into<Vec<RespFrame>>) -> Self {
-        RespArray(s.into())
+        RespArray(Some(s.into()))
+    }
+    pub fn new_null() -> Self {
+        RespArray(None)
     }
 }
 
 impl From<Vec<RespFrame>> for RespArray {
     fn from(s: Vec<RespFrame>) -> Self {
-        RespArray(s)
+        RespArray(Some(s))
     }
 }
 
@@ -109,13 +114,13 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_null_array_decode() {
-        let mut buf = BytesMut::new();
-        buf.extend_from_slice(b"*-1\r\n");
-        let frame = RespNullArray::decode(&mut buf).unwrap();
-        assert_eq!(frame, RespNullArray);
-    }
+    // #[test]
+    // fn test_null_array_decode() {
+    //     let mut buf = BytesMut::new();
+    //     buf.extend_from_slice(b"*-1\r\n");
+    //     let frame = RespNullArray::decode(&mut buf).unwrap();
+    //     assert_eq!(frame, RespNullArray);
+    // }
 
     #[test]
     fn test_array() {
@@ -129,11 +134,14 @@ mod tests {
             frame.encode(),
             b"*3\r\n$3\r\nset\r\n$5\r\nhello\r\n$5\r\nworld\r\n"
         );
-    }
 
-    #[test]
-    fn test_null_array() {
-        let frame: RespFrame = RespNullArray.into();
+        let frame: RespFrame = RespArray::new_null().into();
         assert_eq!(frame.encode(), b"*-1\r\n");
     }
+
+    // #[test]
+    // fn test_null_array() {
+    //     let frame: RespFrame = RespNullArray.into();
+    //     assert_eq!(frame.encode(), b"*-1\r\n");
+    // }
 }
