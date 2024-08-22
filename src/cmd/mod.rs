@@ -1,5 +1,6 @@
 mod hmap;
 mod map;
+mod new_cmd;
 
 use crate::{Backend, RespArray, RespError, RespFrame, SimpleString};
 use enum_dispatch::enum_dispatch;
@@ -35,8 +36,14 @@ pub enum Command {
     HGet(HGet),
     HSet(HSet),
     HGetAll(HGetAll),
+    Echo(Echo),
 
     Unrecognized(Unrecognized),
+}
+
+#[derive(Debug)]
+pub struct Echo {
+    pub message: String,
 }
 
 #[derive(Debug)]
@@ -93,6 +100,7 @@ impl TryFrom<RespArray> for Command {
                 b"hget" => Ok(Command::HGet(HGet::try_from(value)?)),
                 b"hset" => Ok(Command::HSet(HSet::try_from(value)?)),
                 b"hgetall" => Ok(Command::HGetAll(HGetAll::try_from(value)?)),
+                b"echo" => Ok(Command::Echo(Echo::try_from(value)?)),
                 _ => Ok(Unrecognized.into()),
             },
             _ => Err(CommandError::InvalidCommand(
