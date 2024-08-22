@@ -26,7 +26,7 @@ impl RespDecodeV2 for RespFrame {
 mod tests {
     use std::collections::HashMap;
 
-    use crate::RespNullBulkString;
+    use crate::BulkString;
 
     use super::*;
 
@@ -104,7 +104,7 @@ mod tests {
     fn respv2_null_bulk_string_should_work() {
         let mut buf = BytesMut::from("$-1\r\n");
         let frame = RespFrame::decode(&mut buf).unwrap();
-        assert_eq!(frame, RespFrame::NullBulkString(RespNullBulkString));
+        assert_eq!(frame, RespFrame::BulkString(BulkString::new_null()));
     }
 
     #[test]

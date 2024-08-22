@@ -47,8 +47,8 @@ impl TryFrom<RespArray> for HGet {
         let mut args = extract_args(value, 1)?.into_iter();
         match (args.next(), args.next()) {
             (Some(RespFrame::BulkString(key)), Some(RespFrame::BulkString(field))) => Ok(HGet {
-                key: String::from_utf8(key.0)?,
-                field: String::from_utf8(field.0)?,
+                key: String::from_utf8(key.0.unwrap())?,
+                field: String::from_utf8(field.0.unwrap())?,
             }),
             _ => Err(CommandError::InvalidArgument(
                 "Expected key and field arguments".to_string(),
@@ -65,7 +65,7 @@ impl TryFrom<RespArray> for HGetAll {
         let mut args = extract_args(value, 1)?.into_iter();
         match args.next() {
             Some(RespFrame::BulkString(key)) => Ok(HGetAll {
-                key: String::from_utf8(key.0)?,
+                key: String::from_utf8(key.0.unwrap())?,
             }),
             _ => Err(CommandError::InvalidArgument(
                 "Expected key argument".to_string(),
@@ -83,8 +83,8 @@ impl TryFrom<RespArray> for HSet {
         match (args.next(), args.next(), args.next()) {
             (Some(RespFrame::BulkString(key)), Some(RespFrame::BulkString(field)), Some(value)) => {
                 Ok(HSet {
-                    key: String::from_utf8(key.0)?,
-                    field: String::from_utf8(field.0)?,
+                    key: String::from_utf8(key.0.unwrap())?,
+                    field: String::from_utf8(field.0.unwrap())?,
                     value,
                 })
             }
