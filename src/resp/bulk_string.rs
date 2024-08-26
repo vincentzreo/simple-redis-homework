@@ -101,7 +101,7 @@ impl<const N: usize> From<&[u8; N]> for BulkString {
 
 impl AsRef<[u8]> for BulkString {
     fn as_ref(&self) -> &[u8] {
-        &self.0.as_ref().unwrap()
+        self.0.as_ref().unwrap()
     }
 }
 
